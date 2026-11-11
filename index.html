@@ -1,0 +1,1945 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ROKSER STORE CRM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#4f46e5' }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        window.initializeApp = initializeApp;
+        window.getAuth = getAuth;
+        window.signInAnonymously = signInAnonymously;
+        window.getFirestore = getFirestore;
+        window.doc = doc;
+        window.getDoc = getDoc;
+        window.setDoc = setDoc;
+        window.onSnapshot = onSnapshot;
+        window.collection = collection;
+
+        window.firebaseImportsLoaded = true;
+        if(window.initFirebase) window.initFirebase();
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; color: #1f2937; overflow-x: hidden; -webkit-tap-highlight-color: transparent;}
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .modal { display: none; }
+        .modal.active { display: flex; animation: fadeBg 0.2s ease forwards; }
+        .modal-content { transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .modal.active .modal-content { transform: translateY(0); }
+        @media (min-width: 640px) { .modal-content { transform: scale(0.95); opacity: 0; } .modal.active .modal-content { transform: scale(1); opacity: 1; } }
+        @keyframes fadeBg { from { background: transparent; } to { background: rgba(0,0,0,0.5); } }
+        .nav-btn.active { color: #4f46e5; }
+        .toast { transition: all 0.3s ease; transform: translateY(-20px); opacity: 0; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        
+        .logo-text { font-family: 'Inter', sans-serif; font-weight: 900; letter-spacing: -1px; text-transform: uppercase; font-size: 1.25rem;}
+        .logo-rokser { color: #4f46e5; }
+        .logo-store { color: #111827; }
+
+        /* Desktop Layout Styles */
+        @media (min-width: 768px) {
+            .app-container { display: flex; flex-direction: row; height: 100vh; overflow: hidden; max-width: 100%; padding-bottom: 0; }
+            .main-content { flex: 1; overflow-y: auto; padding: 2rem; max-width: 1200px; margin: 0 auto; height: 100%;}
+            .header-bar { border-radius: 1rem; margin-bottom: 2rem; position: sticky; top: 0; z-index: 30; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);}
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div id="loading-screen" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
+        <i class="fa-solid fa-circle-notch fa-spin text-4xl text-primary mb-4"></i>
+        <p class="font-semibold text-gray-600">Завантаження ROKSER STORE...</p>
+    </div>
+
+    <!-- Container -->
+    <div class="app-container max-w-lg md:max-w-none mx-auto bg-gray-50 min-h-screen relative pb-20 md:pb-0">
+        
+        <!-- Sidebar Navigation (Desktop Only) -->
+        <nav class="hidden md:flex order-2 md:order-1 w-full md:w-24 bg-white border-t md:border-t-0 md:border-r border-gray-200 flex-col justify-start p-2 pb-safe md:pt-6 z-40 shrink-0 transition-all">
+            <button class="nav-btn active flex flex-col items-center p-2 text-primary w-16 md:w-full md:mb-4 transition-colors hover:bg-gray-50 rounded-xl" data-target="tab-inventory" data-title="📦 Інвентар">
+                <i class="fa-solid fa-box text-lg mb-1 md:text-2xl"></i>
+                <span class="text-[10px] md:text-xs font-medium mt-1">Склад</span>
+            </button>
+            <button class="nav-btn flex flex-col items-center p-2 text-gray-400 w-16 md:w-full md:mb-4 transition-colors hover:bg-gray-50 rounded-xl" data-target="tab-supplies" data-title="📦 Meest">
+                <img src="data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Cpath%20d%3D%22M10%2080%20V%2020%20L%2040%2050%20L%2070%2020%20V%2080%20H%2055%20V%2045%20L%2040%2060%20L%2025%2045%20V%2080%20Z%22%20fill%3D%22%23005AAB%22%2F%3E%3Ccircle%20cx%3D%2285%22%20cy%3D%2270%22%20r%3D%2210%22%20fill%3D%22%23E30613%22%2F%3E%3C%2Fsvg%3E" class="w-6 h-6 md:w-8 md:h-8 mb-1 grayscale opacity-50 nav-icon transition-all object-contain" alt="Meest">
+                <span class="text-[10px] md:text-xs font-medium mt-1">Meest</span>
+            </button>
+            <button class="nav-btn flex flex-col items-center p-2 text-gray-400 w-16 md:w-full md:mb-4 transition-colors hover:bg-gray-50 rounded-xl" data-target="tab-orders" data-title="🛒 Замовлення">
+                <i class="fa-solid fa-bag-shopping text-lg mb-1 md:text-2xl"></i>
+                <span class="text-[10px] md:text-xs font-medium mt-1">Замовлення</span>
+            </button>
+            <button onclick="openModal('modal-new-order')" class="flex flex-col items-center p-2 w-16 md:w-full md:mb-4 group">
+                <div class="bg-primary text-white w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shadow-lg group-hover:bg-indigo-600 transition-colors">
+                    <i class="fa-solid fa-plus text-xl"></i>
+                </div>
+                <span class="text-[10px] md:text-xs font-medium text-primary mt-1">Створити</span>
+            </button>
+            <button class="nav-btn flex flex-col items-center p-2 text-gray-400 w-16 md:w-full transition-colors hover:bg-gray-50 rounded-xl" data-target="tab-analytics" data-title="📊 Аналітика">
+                <i class="fa-solid fa-chart-pie text-lg mb-1 md:text-2xl"></i>
+                <span class="text-[10px] md:text-xs font-medium mt-1">Аналітика</span>
+            </button>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content order-1 md:order-2">
+            <!-- Header -->
+            <header class="header-bar bg-white p-4 flex justify-between items-center shadow-sm sticky top-0 z-30 mb-4 rounded-b-2xl">
+                <div class="flex items-center">
+                    <button id="btn-back" onclick="goBack()" class="mr-3 w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 transition-colors hidden">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <h1 class="logo-text" id="header-title">
+                        <span class="logo-rokser">ROKSER</span><span class="logo-store">STORE</span> <span class="w-2 h-2 rounded-full bg-green-500 inline-block align-middle ml-1"></span>
+                    </h1>
+                </div>
+                <button onclick="openSettings()" class="text-gray-400 hover:text-gray-600 p-2"><i class="fa-solid fa-gear text-lg"></i></button>
+            </header>
+
+            <!-- ================= INVENTORY TAB ================= -->
+            <section id="tab-inventory" class="tab-content active px-4 md:px-0">
+                <div class="flex justify-between items-center mb-4">
+                    <input type="text" id="search-products" placeholder="Пошук (Назва, SKU)..." class="w-full mr-3 p-2 bg-white rounded-xl shadow-sm outline-none border border-gray-100 focus:border-primary text-sm">
+                    <button onclick="openProductModal()" class="bg-primary text-white w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-md hover:bg-indigo-600 transition-colors"><i class="fa-solid fa-plus"></i></button>
+                </div>
+                <!-- Stock Toggles -->
+                <div class="flex bg-gray-200 p-1 rounded-xl mb-4">
+                    <button id="filter-stock" onclick="setStockView('in_stock')" class="flex-1 py-1.5 rounded-lg text-sm font-bold bg-white shadow-sm text-gray-800 transition-all">На складі</button>
+                    <button id="filter-transit" onclick="setStockView('transit')" class="flex-1 py-1.5 rounded-lg text-sm font-bold text-gray-500 transition-all">В дорозі</button>
+                </div>
+                <!-- Categories -->
+                <div class="flex overflow-x-auto gap-2 pb-2 mb-4 hide-scrollbar">
+                    <button class="cat-filter active px-4 py-1.5 bg-gray-800 text-white rounded-full text-xs font-semibold whitespace-nowrap shadow-sm" data-cat="Всі">Всі</button>
+                    <button class="cat-filter px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-full text-xs font-semibold whitespace-nowrap" data-cat="Кофти">Кофти</button>
+                    <button class="cat-filter px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-full text-xs font-semibold whitespace-nowrap" data-cat="Взуття">Взуття</button>
+                    <button class="cat-filter px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-full text-xs font-semibold whitespace-nowrap" data-cat="Літнє">Літнє</button>
+                    <button class="cat-filter px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-full text-xs font-semibold whitespace-nowrap" data-cat="Штани">Штани</button>
+                    <button class="cat-filter px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-full text-xs font-semibold whitespace-nowrap" data-cat="Аксесуари">Аксесуари</button>
+                </div>
+                <div id="products-list" class="grid grid-cols-1 md:grid-cols-2 gap-3 pb-24 md:pb-0">
+                    <!-- Products dynamically rendered here -->
+                </div>
+            </section>
+
+            <!-- ================= SUPPLIES (PURCHASES) TAB ================= -->
+            <section id="tab-supplies" class="tab-content px-4 md:px-0">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="font-bold text-lg flex items-center"><img src="data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Cpath%20d%3D%22M10%2080%20V%2020%20L%2040%2050%20L%2070%2020%20V%2080%20H%2055%20V%2045%20L%2040%2060%20L%2025%2045%20V%2080%20Z%22%20fill%3D%22%23005AAB%22%2F%3E%3Ccircle%20cx%3D%2285%22%20cy%3D%2270%22%20r%3D%2210%22%20fill%3D%22%23E30613%22%2F%3E%3C%2Fsvg%3E" class="h-6 mr-2 object-contain" alt="Meest"> Відстеження Meest</h2>
+                    <button onclick="openSupplyModal()" class="bg-primary text-white w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-md hover:bg-indigo-600 transition-colors"><i class="fa-solid fa-plus"></i></button>
+                </div>
+                <div id="supplies-list" class="space-y-3 pb-24 md:pb-0">
+                    <!-- Supplies dynamically rendered here -->
+                </div>
+            </section>
+
+            <!-- ================= ORDERS TAB ================= -->
+            <section id="tab-orders" class="tab-content px-4 md:px-0">
+                <!-- Order Status Tabs -->
+                <div class="flex overflow-x-auto gap-2 pb-2 mb-4 hide-scrollbar">
+                    <button class="status-filter active px-4 py-1.5 bg-primary text-white rounded-full text-xs font-semibold whitespace-nowrap shadow-sm" data-status="all">Всі</button>
+                    <button class="status-filter px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-full text-xs font-semibold whitespace-nowrap" data-status="new">Нові</button>
+                    <button class="status-filter px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-full text-xs font-semibold whitespace-nowrap" data-status="packing">Пакуються</button>
+                    <button class="status-filter px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-full text-xs font-semibold whitespace-nowrap" data-status="shipped">Відправлені</button>
+                    <button class="status-filter px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-full text-xs font-semibold whitespace-nowrap" data-status="completed">Виконані</button>
+                </div>
+                <div id="orders-list" class="space-y-3 pb-24 md:pb-0">
+                    <!-- Orders dynamically rendered here -->
+                </div>
+            </section>
+
+            <!-- ================= ANALYTICS TAB ================= -->
+            <section id="tab-analytics" class="tab-content px-4 md:px-0 pb-24 md:pb-0">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="font-bold text-lg">Аналітика</h2>
+                    <select id="analytics-period" onchange="renderAnalytics()" class="p-1.5 bg-white border rounded-lg text-xs font-medium outline-none">
+                        <option value="all">За весь час</option>
+                        <option value="week">За тиждень</option>
+                        <option value="month">За місяць</option>
+                        <option value="year">За рік</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-6">
+                    <div class="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
+                        <div class="text-xs font-bold text-indigo-800 mb-1 opacity-70 uppercase tracking-wider">Сумарна</div>
+                        <div class="text-2xl font-black text-indigo-900" id="stat-revenue">0 ₴</div>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-2xl border border-green-100">
+                        <div class="text-xs font-bold text-green-800 mb-1 opacity-70 uppercase tracking-wider">Чиста</div>
+                        <div class="text-2xl font-black text-green-900" id="stat-profit">0 ₴</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
+                        <div class="text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Успішні</div>
+                        <div class="text-xl font-black text-gray-800" id="stat-success-orders">0</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
+                        <div class="text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Відмови</div>
+                        <div class="text-xl font-black text-red-600" id="stat-failed-orders">0</div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm mb-6">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-sm">База клієнтів</h3>
+                        <button onclick="openClientHistory()" class="text-xs bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg font-bold hover:bg-gray-200 transition-colors">Відкрити історію <i class="fa-solid fa-chevron-right ml-1"></i></button>
+                    </div>
+                </div>
+            </section>
+        </main>
+        
+        <!-- Bottom Navigation (Mobile Only) -->
+        <nav class="md:hidden fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around p-2 pb-safe z-40 max-w-lg mx-auto left-0 right-0">
+            <button class="nav-btn active flex flex-col items-center p-1.5 text-primary w-14 transition-colors" data-target="tab-inventory" data-title="📦 Інвентар">
+                <i class="fa-solid fa-box text-lg mb-1"></i>
+                <span class="text-[9px] sm:text-[10px] font-medium">Склад</span>
+            </button>
+            <button class="nav-btn flex flex-col items-center p-1.5 text-gray-400 w-14 transition-colors" data-target="tab-supplies" data-title="📦 Meest">
+                <img src="data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Cpath%20d%3D%22M10%2080%20V%2020%20L%2040%2050%20L%2070%2020%20V%2080%20H%2055%20V%2045%20L%2040%2060%20L%2025%2045%20V%2080%20Z%22%20fill%3D%22%23005AAB%22%2F%3E%3Ccircle%20cx%3D%2285%22%20cy%3D%2270%22%20r%3D%2210%22%20fill%3D%22%23E30613%22%2F%3E%3C%2Fsvg%3E" class="w-5 h-5 mb-1 grayscale opacity-50 nav-icon transition-all object-contain" alt="Meest">
+                <span class="text-[9px] sm:text-[10px] font-medium">Meest</span>
+            </button>
+            <button class="nav-btn flex flex-col items-center p-1.5 text-gray-400 w-14 transition-colors" data-target="tab-orders" data-title="🛒 Замовлення">
+                <i class="fa-solid fa-bag-shopping text-lg mb-1"></i>
+                <span class="text-[9px] sm:text-[10px] font-medium">Замовлення</span>
+            </button>
+            <button onclick="openModal('modal-new-order')" class="flex flex-col items-center p-1.5 w-14 group">
+                <div class="bg-primary text-white w-10 h-10 rounded-full flex items-center justify-center -mt-4 shadow-lg border-4 border-white group-hover:bg-indigo-600 transition-colors">
+                    <i class="fa-solid fa-plus text-lg"></i>
+                </div>
+                <span class="text-[9px] sm:text-[10px] font-medium text-primary mt-0.5">Створити</span>
+            </button>
+            <button class="nav-btn flex flex-col items-center p-1.5 text-gray-400 w-14 transition-colors" data-target="tab-analytics" data-title="📊 Аналітика">
+                <i class="fa-solid fa-chart-pie text-lg mb-1"></i>
+                <span class="text-[9px] sm:text-[10px] font-medium">Аналітика</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Modals Overlay Background -->
+    <div id="backdrop" class="fixed inset-0 bg-black/40 z-40 hidden transition-opacity opacity-0" onclick="closeTopModal()"></div>
+
+    <!-- ================= MODALS ================= -->
+
+    <!-- Add/Edit Product Modal -->
+    <div id="modal-product" class="modal fixed inset-0 z-50 flex items-end sm:items-center justify-center pointer-events-none">
+        <div class="modal-content bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto p-4 pb-20 relative pointer-events-auto" ontouchstart="handleTouchStart(event, 'header')" ontouchmove="handleTouchMove(event, 'header')">
+            <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-3 sm:hidden cursor-grab active:cursor-grabbing handle"></div>
+            <button onclick="closeModal('modal-product')" class="absolute top-4 right-4 text-gray-400 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center hover:bg-gray-200"><i class="fa-solid fa-times"></i></button>
+            <h2 class="text-xl font-bold mb-4" id="modal-product-title">Новий товар</h2>
+            <input type="hidden" id="prod-id">
+            
+            <div class="space-y-3">
+                <div class="flex gap-3">
+                    <!-- Image Upload -->
+                    <div class="w-20 h-20 shrink-0 bg-gray-100 rounded-xl border border-dashed border-gray-300 flex flex-col items-center justify-center relative overflow-hidden cursor-pointer" onclick="document.getElementById('prod-image-upload').click()">
+                        <img id="prod-image-preview" class="absolute inset-0 w-full h-full object-cover hidden">
+                        <i class="fa-regular fa-image text-gray-400 text-xl mb-1" id="prod-image-icon"></i>
+                        <span class="text-[8px] text-gray-500 font-bold" id="prod-image-text">ФОТО</span>
+                        <input type="file" id="prod-image-upload" class="hidden" accept="image/*" onchange="handleImageUpload(event)">
+                        <input type="hidden" id="prod-image-base64">
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-xs text-gray-500 mb-1 block">Назва</label>
+                        <input type="text" id="prod-name" placeholder="Напр. Oversize Hoodie" class="w-full p-2 border rounded-lg bg-gray-50 text-sm outline-none focus:border-primary">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-gray-500 mb-1 block">SKU</label>
+                        <input type="text" id="prod-sku" class="w-full p-2 border rounded-lg bg-gray-50 outline-none focus:border-primary text-sm">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500 mb-1 block">Тип товару</label>
+                        <select id="prod-cat" class="w-full p-2 border rounded-lg bg-gray-50 text-sm outline-none focus:border-primary">
+                            <option value="" disabled selected>Оберіть тип</option>
+                            <!-- Options injected by JS -->
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-gray-500 mb-1 block">Статус товару</label>
+                        <select id="prod-status" class="w-full p-2 border rounded-lg bg-gray-50 text-sm outline-none focus:border-primary">
+                            <option value="in_stock">✅ На складі</option>
+                            <option value="transit">🚚 В дорозі</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500 mb-1 block">Ціна продажу (₴)</label>
+                        <input type="number" id="prod-price" class="w-full p-2 border rounded-lg bg-gray-50 text-sm outline-none focus:border-primary">
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 p-3 rounded-xl border border-gray-200 mt-2">
+                    <h3 class="font-semibold text-sm mb-2 text-gray-700"><i class="fa-solid fa-calculator mr-1"></i> Розрахунок собівартості</h3>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <div><label class="text-[10px] text-gray-500 block">Вартість закупки (₴)</label><input type="number" id="pc-goods" oninput="calcProductCost()" class="w-full p-1.5 border rounded bg-white text-sm outline-none focus:border-primary" placeholder="0"></div>
+                        <div><label class="text-[10px] text-gray-500 block">Кількість (шт)</label><input type="number" id="pc-qty" oninput="calcProductCost()" class="w-full p-1.5 border rounded bg-white text-sm outline-none focus:border-primary" placeholder="1"></div>
+                        <div><label class="text-[10px] text-gray-500 block">Доставка (₴)</label><input type="number" id="pc-delivery" oninput="calcProductCost()" class="w-full p-1.5 border rounded bg-white text-sm outline-none focus:border-primary" placeholder="0"></div>
+                        <div><label class="text-[10px] text-gray-500 block">Реклама/Інше (₴)</label><input type="number" id="pc-misc" oninput="calcProductCost()" class="w-full p-1.5 border rounded bg-white text-sm outline-none focus:border-primary" placeholder="0"></div>
+                    </div>
+                    <div class="flex justify-between items-center border-t border-gray-200 pt-2 mt-1">
+                        <span class="text-xs font-semibold text-gray-600">Собівартість 1 шт:</span>
+                        <input type="number" id="prod-cost" class="w-24 p-1 rounded bg-transparent font-bold text-primary text-right outline-none" readonly placeholder="0">
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="font-bold text-sm">Варіації (Розмір/Колір/Залишок)</h3>
+                        <button onclick="addVariantRow()" class="text-xs bg-indigo-50 text-primary px-2 py-1 rounded-md font-bold hover:bg-indigo-100">+ Додати</button>
+                    </div>
+                    <div id="variants-container" class="space-y-2 max-h-48 overflow-y-auto p-1">
+                        <!-- Variants rows here -->
+                    </div>
+                </div>
+            </div>
+            
+            <button onclick="saveProduct()" class="w-full mt-6 bg-primary text-white py-3 rounded-xl font-bold shadow-md hover:bg-indigo-700 transition-colors">Зберегти товар</button>
+        </div>
+    </div>
+
+    <!-- Add/Edit Supply Modal -->
+    <div id="modal-supply" class="modal fixed inset-0 z-50 flex items-end sm:items-center justify-center pointer-events-none">
+        <div class="modal-content bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl h-[85vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto p-4 pb-20 relative pointer-events-auto" ontouchstart="handleTouchStart(event, 'header')" ontouchmove="handleTouchMove(event, 'header')">
+            <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-3 sm:hidden cursor-grab active:cursor-grabbing handle"></div>
+            <button onclick="closeModal('modal-supply')" class="absolute top-4 right-4 text-gray-400 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center hover:bg-gray-200"><i class="fa-solid fa-times"></i></button>
+            <h2 class="text-xl font-bold mb-4" id="modal-supply-title">Посилка Meest</h2>
+            <input type="hidden" id="sup-id">
+            
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">Трек-номер Meest</label>
+                    <input type="text" id="sup-track" placeholder="Напр., MGR123456789" class="w-full p-3 border rounded-lg bg-gray-50 outline-none focus:border-primary font-bold text-lg">
+                </div>
+                
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">Вміст (Що їде та скільки штук)</label>
+                    <textarea id="sup-desc" rows="4" placeholder="Кросівки Nike білі x10 шт, Футболки oversize чорні x20 шт..." class="w-full p-2 border rounded-lg bg-gray-50 outline-none focus:border-primary text-sm"></textarea>
+                </div>
+                
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">Статус посилки</label>
+                    <select id="sup-status" class="w-full p-2 border rounded-lg bg-gray-50 font-medium outline-none text-sm">
+                        <option value="transit">🚚 В дорозі (Прямує до нас)</option>
+                        <option value="received">✅ Отримано (Додано на склад)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button onclick="saveSupply()" class="w-full mt-6 bg-primary text-white py-3 rounded-xl font-bold shadow-md hover:bg-indigo-700 transition-colors">Зберегти відстеження</button>
+        </div>
+    </div>
+
+    <!-- Select Product for Order Modal -->
+    <div id="modal-select-product" class="modal fixed inset-0 z-50 flex items-end sm:items-center justify-center pointer-events-none">
+        <div class="modal-content bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl h-[85vh] sm:h-auto sm:max-h-[90vh] flex flex-col relative pointer-events-auto" ontouchstart="handleTouchStart(event, 'header')" ontouchmove="handleTouchMove(event, 'header')">
+            <div class="p-4 border-b border-gray-100 shrink-0 handle">
+                <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-3 sm:hidden cursor-grab active:cursor-grabbing"></div>
+                <button onclick="closeModal('modal-select-product')" class="absolute top-4 right-4 text-gray-400 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center hover:bg-gray-200"><i class="fa-solid fa-times"></i></button>
+                <h2 class="text-lg font-bold mb-2">Обрати товар</h2>
+                <input type="text" id="search-select-product" onkeyup="renderSelectProducts()" placeholder="Пошук (Назва, SKU)..." class="w-full p-2 border rounded-lg bg-gray-50 text-sm outline-none focus:border-primary">
+            </div>
+            <div id="select-products-list" class="flex-1 overflow-y-auto p-4 space-y-2 pb-safe">
+                <!-- Selectable products rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- New Order Modal -->
+    <div id="modal-new-order" class="modal fixed inset-0 z-[45] flex flex-col justify-end sm:justify-center items-center pointer-events-none">
+        <div class="modal-content bg-white w-full h-[95vh] sm:h-[85vh] sm:max-w-2xl sm:rounded-2xl rounded-t-2xl flex flex-col relative pointer-events-auto" ontouchstart="handleTouchStart(event, 'header')" ontouchmove="handleTouchMove(event, 'header')">
+            <div class="p-4 border-b border-gray-100 shrink-0 handle" id="new-order-header">
+                <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-3 sm:hidden cursor-grab active:cursor-grabbing"></div>
+                <button onclick="closeModal('modal-new-order')" class="absolute top-4 right-4 text-gray-400 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center hover:bg-gray-200"><i class="fa-solid fa-times"></i></button>
+                <h2 class="text-xl font-black">Нове замовлення</h2>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-4 space-y-6 pb-8">
+                <!-- Cart Section -->
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-gray-700">Кошик</h3>
+                        <button onclick="openModal('modal-select-product')" class="text-sm bg-indigo-50 text-primary px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-100"><i class="fa-solid fa-plus mr-1"></i> Товар</button>
+                    </div>
+                    <div id="cart-items" class="space-y-2">
+                        <div class="text-center text-gray-400 py-4 text-sm border-2 border-dashed border-gray-200 rounded-xl" id="empty-cart-msg">Кошик порожній</div>
+                    </div>
+                    <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-200 hidden" id="cart-total-container">
+                        <span class="font-bold text-gray-500">Разом:</span>
+                        <span class="font-black text-xl text-gray-800" id="cart-total">0 ₴</span>
+                    </div>
+                </div>
+
+                <!-- Client & Shipping Details -->
+                <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                    <h3 class="font-bold text-gray-700 mb-3">Дані клієнта та доставка</h3>
+                    <div class="space-y-3">
+                        <div class="grid grid-cols-[1fr_auto] gap-2">
+                            <input type="tel" id="order-phone" placeholder="Телефон (099...)" oninput="validateOrderForm()" class="w-full p-2.5 border rounded-xl bg-white text-sm outline-none focus:border-primary">
+                            <button onclick="findClient()" class="bg-gray-200 text-gray-600 px-3 rounded-xl hover:bg-gray-300"><i class="fa-solid fa-magnifying-glass"></i></button>
+                        </div>
+                        <input type="text" id="order-name" placeholder="ПІБ клієнта" oninput="validateOrderForm()" class="w-full p-2.5 border rounded-xl bg-white text-sm outline-none focus:border-primary">
+                        <input type="text" id="order-source" placeholder="Нікнейм або звідки прийшов (напр. @instagram)" class="w-full p-2.5 border rounded-xl bg-white text-sm outline-none focus:border-primary text-gray-600">
+                        
+                        <!-- Вибір пошти -->
+                        <div class="flex bg-gray-200 p-1 rounded-xl">
+                            <button id="btn-np" onclick="setShippingMethod('np')" class="flex-1 py-2 rounded-lg text-sm font-bold bg-white shadow-sm transition-all flex items-center justify-center text-gray-800">
+                                <img src="data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2220%22%20fill%3D%22%23ED1C24%22%2F%3E%3Cpath%20d%3D%22M25%2025%20h15%20v18%20h20%20v-18%20h15%20v50%20h-15%20v-18%20h-20%20v18%20h-15%20z%22%20fill%3D%22%23FFFFFF%22%2F%3E%3C%2Fsvg%3E" id="np-logo-img" class="h-4 mr-2 object-contain" alt="НП"> Нова Пошта
+                            </button>
+                            <button id="btn-ukr" onclick="setShippingMethod('ukr')" class="flex-1 py-2 rounded-lg text-sm font-bold text-gray-500 transition-all flex items-center justify-center">
+                                <img src="data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2220%22%20fill%3D%22%23FFCE00%22%2F%3E%3Cpath%20d%3D%22M20%2050%20C%2030%2010%2C%2070%2010%2C%2080%2050%20C%2070%2090%2C%2030%2090%2C%2020%2050%20Z%22%20fill%3D%22%230055A5%22%2F%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2215%22%20fill%3D%22%23FFCE00%22%2F%3E%3C%2Fsvg%3E" id="ukr-logo-img" class="h-4 mr-2 opacity-50 grayscale object-contain" alt="УП"> Укрпошта
+                            </button>
+                        </div>
+                        <input type="hidden" id="shipping-method" value="np">
+
+                        <input type="text" id="order-city" placeholder="Місто / Населений пункт" oninput="validateOrderForm()" class="w-full p-2.5 border rounded-xl bg-white text-sm outline-none focus:border-primary">
+                        <input type="text" id="order-dep" placeholder="Відділення / Поштомат" oninput="validateOrderForm()" class="w-full p-2.5 border rounded-xl bg-white text-sm outline-none focus:border-primary">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-xs text-gray-500 font-bold ml-1 mb-1 block">Нотатки (для себе)</label>
+                    <textarea id="order-notes" rows="2" class="w-full p-3 border rounded-xl bg-gray-50 text-sm outline-none focus:border-primary"></textarea>
+                </div>
+                
+                <button id="btn-create-order" onclick="createOrder()" disabled class="w-full bg-primary text-white py-4 rounded-xl font-black text-lg shadow-lg hover:bg-indigo-700 transition-all mt-4 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                    <i class="fa-solid fa-check-circle mr-2"></i> Створити замовлення
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Details Modal -->
+    <div id="modal-order-details" class="modal fixed inset-0 z-50 flex items-end sm:items-center justify-center pointer-events-none">
+        <div class="modal-content bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl h-[95vh] sm:h-[85vh] flex flex-col relative pointer-events-auto" ontouchstart="handleTouchStart(event, 'header')" ontouchmove="handleTouchMove(event, 'header')">
+            <div class="p-4 border-b border-gray-100 shrink-0 handle" id="order-details-header">
+                <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-3 sm:hidden cursor-grab active:cursor-grabbing"></div>
+                <button onclick="closeModal('modal-order-details')" class="absolute top-4 right-4 text-gray-400 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center hover:bg-gray-200"><i class="fa-solid fa-times"></i></button>
+                <div class="flex justify-between items-center pr-10">
+                    <h2 class="text-lg font-black" id="od-title">Замовлення</h2>
+                    <span id="od-badge" class="px-2 py-1 rounded-lg text-[10px] font-bold uppercase"></span>
+                </div>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
+                <input type="hidden" id="od-id">
+                
+                <!-- Status Actions -->
+                <div class="bg-gray-50 p-2 rounded-xl flex overflow-x-auto gap-2 hide-scrollbar">
+                    <button onclick="updateOrderStatus('new')" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm border border-gray-200 whitespace-nowrap">Нове</button>
+                    <button onclick="updateOrderStatus('packing')" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm border border-gray-200 whitespace-nowrap">Пакується</button>
+                    <button onclick="updateOrderStatus('shipped')" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm border border-gray-200 whitespace-nowrap">Відправлено</button>
+                    <button onclick="updateOrderStatus('completed')" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm border border-gray-200 text-green-600 whitespace-nowrap">Виконано</button>
+                    <button onclick="updateOrderStatus('cancelled')" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm border border-gray-200 text-red-600 whitespace-nowrap">Відмова</button>
+                </div>
+
+                <!-- Shipping Tracking -->
+                <div class="bg-indigo-50 border border-indigo-100 p-3 rounded-xl">
+                    <label class="text-xs font-bold text-indigo-800 mb-1 block">ТТН (Номер посилки)</label>
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" id="od-ttn" placeholder="Введіть ТТН" class="flex-1 p-2 rounded-lg border border-indigo-200 outline-none text-sm font-bold bg-white">
+                        <button onclick="saveTTN()" class="bg-indigo-600 text-white px-3 rounded-lg text-xs font-bold hover:bg-indigo-700">Зберегти</button>
+                    </div>
+                    <div id="od-np-status" class="text-xs text-indigo-900 bg-white p-2 rounded border border-indigo-100 min-h-[32px] flex items-center font-medium">Статус ТТН з'явиться тут</div>
+                </div>
+
+                <!-- Client Info -->
+                <div>
+                    <h3 class="font-bold text-xs text-gray-400 uppercase mb-2">Клієнт</h3>
+                    <div class="bg-white border border-gray-100 p-3 rounded-xl shadow-sm text-sm">
+                        <div class="font-bold text-gray-800" id="od-client-name"></div>
+                        <div class="text-gray-500 mb-2" id="od-client-phone"></div>
+                        <div class="flex items-start text-gray-700">
+                            <i class="fa-solid fa-location-dot mt-1 mr-2 text-gray-400"></i>
+                            <div>
+                                <div id="od-client-city" class="font-medium"></div>
+                                <div id="od-client-dep" class="text-xs text-gray-500"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Items -->
+                <div>
+                    <h3 class="font-bold text-xs text-gray-400 uppercase mb-2 flex justify-between"><span>Товари</span> <span id="od-total" class="text-gray-800"></span></h3>
+                    <div id="od-items" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Client History Modal -->
+    <div id="modal-clients" class="modal fixed inset-0 z-[60] flex items-end sm:items-center justify-center pointer-events-none">
+        <div class="modal-content bg-white w-full max-w-lg rounded-t-2xl sm:rounded-2xl h-[85vh] flex flex-col relative pointer-events-auto" ontouchstart="handleTouchStart(event, 'header')" ontouchmove="handleTouchMove(event, 'header')">
+            <div class="p-4 border-b border-gray-100 shrink-0 handle" id="clients-header">
+                <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-3 sm:hidden cursor-grab active:cursor-grabbing"></div>
+                <button onclick="closeModal('modal-clients')" class="absolute top-4 right-4 text-gray-400 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center hover:bg-gray-200"><i class="fa-solid fa-times"></i></button>
+                <h2 class="text-xl font-black text-gray-800">Історія клієнтів</h2>
+                <p class="text-xs text-gray-500 mt-1">Всі покупки за весь час</p>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 space-y-4 pb-safe bg-gray-50" id="clients-history-list">
+                <!-- Rendered by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="modal-settings" class="modal fixed inset-0 z-[60] flex items-end sm:items-center justify-center pointer-events-none">
+        <div class="modal-content bg-white w-full max-w-sm rounded-t-2xl sm:rounded-2xl h-[50vh] sm:h-auto flex flex-col relative pointer-events-auto" ontouchstart="handleTouchStart(event, 'header')" ontouchmove="handleTouchMove(event, 'header')">
+            <div class="p-4 border-b border-gray-100 shrink-0 handle" id="settings-header">
+                <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-3 sm:hidden cursor-grab active:cursor-grabbing"></div>
+                <button onclick="closeModal('modal-settings')" class="absolute top-4 right-4 text-gray-400 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center hover:bg-gray-200"><i class="fa-solid fa-times"></i></button>
+                <h2 class="text-lg font-black text-gray-800">Налаштування</h2>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                <div class="bg-orange-50 border border-orange-200 p-3 rounded-xl">
+                    <h3 class="text-sm font-bold text-orange-800 mb-2"><i class="fa-solid fa-key mr-1"></i> API Нової Пошти</h3>
+                    <p class="text-[10px] text-orange-600 mb-2">Введіть свій особистий ключ API Нової Пошти, щоб автоматично відстежувати статуси відправлень.</p>
+                    <input type="text" id="setting-np-key" placeholder="Вставте API ключ..." class="w-full p-2 border border-orange-300 rounded-lg text-xs outline-none bg-white mb-2 font-mono">
+                    <button onclick="saveNPKey()" class="w-full bg-orange-500 text-white py-1.5 rounded-lg text-xs font-bold hover:bg-orange-600">Зберегти ключ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2 rounded-full shadow-lg font-medium text-sm flex items-center gap-2 pointer-events-none text-center min-w-[200px] justify-center">
+        <span id="toast-icon"></span>
+        <span id="toast-msg"></span>
+    </div>
+
+    <script>
+        // ================= CONFIG & GLOBALS =================
+        const npConfig = {
+            apiKey: localStorage.getItem('np_api_key') || '28629edf18005d3d4f637ae78cf6fdfa',
+            url: 'https://api.novaposhta.ua/v2.0/json/'
+        };
+
+        const PRODUCT_CATEGORIES = [
+            { name: 'Худі', emoji: '🧥' },
+            { name: 'Світшот', emoji: '👔' },
+            { name: 'Светр', emoji: '🧶' },
+            { name: 'Лонгслів', emoji: '👕' },
+            { name: 'Зіп-худі', emoji: '🧥' },
+            { name: 'Курточка', emoji: '🧥' },
+            { name: 'Футболка', emoji: '👕' },
+            { name: 'Шорти', emoji: '🩳' },
+            { name: 'Штани', emoji: '👖' },
+            { name: 'Джински', emoji: '👖' },
+            { name: 'Кросівки', emoji: '👟' },
+            { name: 'Кеди', emoji: '👟' },
+            { name: 'Черевики', emoji: '🥾' },
+            { name: 'Аксесуари', emoji: '🎒' }
+        ];
+
+        const PRODUCT_GROUPS = {
+            'Взуття': ['Кросівки', 'Кеди', 'Черевики'],
+            'Штани': ['Штани', 'Джински'],
+            'Кофти': ['Худі', 'Світшот', 'Светр', 'Лонгслів', 'Зіп-худі'],
+            'Літнє': ['Футболка', 'Шорти'],
+            'Верхній одяг': ['Курточка'],
+            'Аксесуари': ['Аксесуари']
+        };
+
+        const POPULAR_COLORS = [
+            { name: 'Black', hex: '#000000' },
+            { name: 'Grey', hex: '#808080' },
+            { name: 'White', hex: '#FFFFFF' },
+            { name: 'Red', hex: '#FF0000' },
+            { name: 'Purple', hex: '#800080' },
+            { name: 'Orange', hex: '#FFA500' },
+            { name: 'Green', hex: '#008000' },
+            { name: 'Brown', hex: '#8B4513' },
+            { name: 'Yellow', hex: '#FFFF00' },
+            { name: 'Blue', hex: '#0000FF' }
+        ];
+
+        let db;
+        let isConnected = false;
+        const DEFAULT_APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'rokser-crm-local';
+        const USER_ID = 'admin-user'; 
+
+        window.appState = {
+            products: [],
+            orders: [],
+            clients: [],
+            supplies: [],
+            cart: [],
+            navigationHistory: ['tab-inventory'],
+            activeModals: []
+        };
+
+        function saveToLocal() {
+            if(!isConnected) {
+                localStorage.setItem('rokser_crm_data', JSON.stringify({
+                    products: window.appState.products,
+                    orders: window.appState.orders,
+                    clients: window.appState.clients,
+                    supplies: window.appState.supplies
+                }));
+            }
+        }
+
+        function loadFromLocal() {
+            const data = localStorage.getItem('rokser_crm_data');
+            if(data) {
+                try {
+                    const parsed = JSON.parse(data);
+                    window.appState.products = parsed.products || [];
+                    window.appState.orders = parsed.orders || [];
+                    window.appState.clients = parsed.clients || [];
+                    window.appState.supplies = parsed.supplies || [];
+                } catch(e) {
+                    console.error(e);
+                }
+            }
+        }
+
+        window.initFirebase = async function() {
+            try {
+                if (typeof __firebase_config !== 'undefined') {
+                    const firebaseConfig = JSON.parse(__firebase_config);
+                    const app = window.initializeApp(firebaseConfig);
+                    db = window.getFirestore(app);
+                    const auth = window.getAuth(app);
+                    
+                    if (typeof __initial_auth_token !== 'undefined') {
+                        await window.signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await window.signInAnonymously(auth);
+                    }
+                    isConnected = true;
+                    
+                    subscribeToData('products');
+                    subscribeToData('orders');
+                    subscribeToData('clients');
+                    subscribeToData('supplies');
+                } else {
+                    isConnected = false;
+                    loadFromLocal();
+                    renderProducts();
+                    renderOrders();
+                    renderSupplies();
+                }
+            } catch (e) {
+                isConnected = false;
+                loadFromLocal();
+                renderProducts();
+                renderOrders();
+                renderSupplies();
+            } finally {
+                document.getElementById('loading-screen').style.display = 'none';
+                if(!localStorage.getItem('np_api_key')) {
+                    localStorage.setItem('np_api_key', npConfig.apiKey);
+                    setTimeout(() => showToast('Ключ Нової Пошти автоматично підтягнуто! 🚀', 'success'), 1000);
+                }
+                setTimeout(checkAllParcelsStatus, 3000);
+            }
+        };
+        
+        if(window.firebaseImportsLoaded) {
+            window.initFirebase();
+        } else {
+            document.addEventListener('DOMContentLoaded', () => {
+                if(window.firebaseImportsLoaded && !window.initFirebaseRun) {
+                    window.initFirebaseRun = true;
+                    window.initFirebase();
+                }
+            });
+        }
+        
+        setTimeout(() => {
+            const loader = document.getElementById('loading-screen');
+            if(loader) loader.style.display = 'none';
+        }, 3000);
+
+        function getCollectionPath(colName) {
+            return `artifacts/${DEFAULT_APP_ID}/users/${USER_ID}/${colName}`;
+        }
+
+        function subscribeToData(colName) {
+            window.onSnapshot(window.collection(db, getCollectionPath(colName)), (snapshot) => {
+                const data = [];
+                snapshot.forEach(doc => data.push(doc.data()));
+                window.appState[colName] = data;
+                
+                if (colName === 'products') renderProducts();
+                if (colName === 'orders') renderOrders();
+                if (colName === 'supplies') renderSupplies();
+            }, (error) => {
+                console.error(error);
+            });
+        }
+
+        function showToast(msg, type = 'success') {
+            const t = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            document.getElementById('toast-msg').innerText = msg;
+            
+            t.className = `toast fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2 rounded-full shadow-lg font-medium text-sm flex items-center gap-2 pointer-events-none text-center min-w-[200px] justify-center text-white show`;
+            
+            if (type === 'success') {
+                t.classList.add('bg-green-600');
+                icon.innerHTML = '<i class="fa-solid fa-check-circle"></i>';
+            } else if (type === 'error') {
+                t.classList.add('bg-red-600');
+                icon.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i>';
+            } else {
+                t.classList.add('bg-gray-800');
+                icon.innerHTML = '<i class="fa-solid fa-info-circle"></i>';
+            }
+
+            setTimeout(() => { t.classList.remove('show'); }, 3000);
+        }
+
+        window.openModal = function(id) {
+            document.getElementById('backdrop').classList.remove('hidden');
+            setTimeout(() => document.getElementById('backdrop').classList.add('opacity-100'), 10);
+            document.getElementById(id).classList.add('active');
+            if(!window.appState.activeModals.includes(id)) {
+                window.appState.activeModals.push(id);
+                updateBackButton();
+            }
+        }
+
+        window.closeModal = function(id) {
+            document.getElementById(id).classList.remove('active');
+            window.appState.activeModals = window.appState.activeModals.filter(m => m !== id);
+            
+            if (window.appState.activeModals.length === 0) {
+                document.getElementById('backdrop').classList.remove('opacity-100');
+                setTimeout(() => document.getElementById('backdrop').classList.add('hidden'), 200);
+            }
+            updateBackButton();
+        }
+        
+        window.closeTopModal = function() {
+            if(window.appState.activeModals.length > 0) {
+                const topModalId = window.appState.activeModals[window.appState.activeModals.length - 1];
+                closeModal(topModalId);
+            }
+        }
+
+        let touchStartY = 0;
+        let touchCurrentY = 0;
+        let isDraggingModal = false;
+        
+        window.handleTouchStart = function(e, targetArea = 'any') {
+            if(targetArea === 'header' && !e.target.closest('.handle')) return;
+            touchStartY = e.touches[0].clientY;
+            isDraggingModal = true;
+        }
+        
+        window.handleTouchMove = function(e, targetArea = 'any') {
+            if(!isDraggingModal) return;
+            touchCurrentY = e.touches[0].clientY;
+            const diff = touchCurrentY - touchStartY;
+            if (diff > 50) {
+                closeTopModal();
+                isDraggingModal = false;
+            }
+        }
+        
+        document.addEventListener('touchend', () => { isDraggingModal = false; });
+
+        window.openSettings = function() {
+            document.getElementById('setting-np-key').value = localStorage.getItem('np_api_key') || '';
+            openModal('modal-settings');
+        }
+
+        window.saveNPKey = function() {
+            const key = document.getElementById('setting-np-key').value.trim();
+            if(key) {
+                localStorage.setItem('np_api_key', key);
+                npConfig.apiKey = key;
+                showToast('Ключ збережено!');
+                closeModal('modal-settings');
+            }
+        }
+
+        function updateBackButton() {
+            const btn = document.getElementById('btn-back');
+            const hasModals = window.appState.activeModals.length > 0;
+            const hasHistory = window.appState.navigationHistory.length > 1;
+            
+            if (hasModals || hasHistory) {
+                btn.classList.remove('hidden');
+            } else {
+                btn.classList.add('hidden');
+            }
+        }
+
+        window.goBack = function() {
+            if (window.appState.activeModals.length > 0) {
+                closeTopModal();
+                return;
+            }
+            if (window.appState.navigationHistory.length > 1) {
+                window.appState.navigationHistory = ['tab-inventory'];
+                switchTab('tab-inventory');
+            }
+            updateBackButton();
+        }
+
+        function switchTab(targetId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(targetId).classList.add('active');
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                const icon = btn.querySelector('i');
+                const img = btn.querySelector('img.nav-icon');
+                
+                if(btn.dataset.target === targetId) {
+                    btn.classList.add('active', 'text-primary');
+                    btn.classList.remove('text-gray-400');
+                    if(icon) { icon.classList.add('text-primary'); icon.classList.remove('text-gray-400'); }
+                    if(img) { img.classList.remove('grayscale', 'opacity-50'); }
+                } else {
+                    btn.classList.remove('active', 'text-primary');
+                    btn.classList.add('text-gray-400');
+                    if(icon) { icon.classList.remove('text-primary'); icon.classList.add('text-gray-400'); }
+                    if(img) { img.classList.add('grayscale', 'opacity-50'); }
+                }
+            });
+            
+            const currentTab = window.appState.navigationHistory[window.appState.navigationHistory.length - 1];
+            if(currentTab !== targetId) {
+                window.appState.navigationHistory.push(targetId);
+            }
+            updateBackButton();
+            if(targetId === 'tab-analytics') renderAnalytics();
+        }
+
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                switchTab(e.currentTarget.dataset.target);
+            });
+        });
+
+        window.handleImageUpload = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const MAX_SIZE = 300;
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > height) {
+                        if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
+                    } else {
+                        if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    document.getElementById('prod-image-base64').value = dataUrl;
+                    
+                    const preview = document.getElementById('prod-image-preview');
+                    preview.src = dataUrl;
+                    preview.classList.remove('hidden');
+                    document.getElementById('prod-image-icon').classList.add('hidden');
+                    document.getElementById('prod-image-text').classList.add('hidden');
+                }
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        let currentCatFilter = 'Всі';
+        let currentStockView = 'in_stock';
+
+        window.setStockView = function(view) {
+            currentStockView = view;
+            const btnIn = document.getElementById('filter-stock');
+            const btnTr = document.getElementById('filter-transit');
+            if(view === 'in_stock') {
+                btnIn.className = 'flex-1 py-1.5 rounded-lg text-sm font-bold bg-white shadow-sm text-gray-800 transition-all';
+                btnTr.className = 'flex-1 py-1.5 rounded-lg text-sm font-bold text-gray-500 transition-all';
+            } else {
+                btnTr.className = 'flex-1 py-1.5 rounded-lg text-sm font-bold bg-white shadow-sm text-gray-800 transition-all';
+                btnIn.className = 'flex-1 py-1.5 rounded-lg text-sm font-bold text-gray-500 transition-all';
+            }
+            renderProducts(document.getElementById('search-products').value);
+        }
+
+        document.querySelectorAll('.cat-filter').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.cat-filter').forEach(b => {
+                    b.className = 'cat-filter px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-full text-xs font-semibold whitespace-nowrap';
+                });
+                e.target.className = 'cat-filter active px-4 py-1.5 bg-gray-800 text-white rounded-full text-xs font-semibold whitespace-nowrap shadow-sm';
+                currentCatFilter = e.target.dataset.cat;
+                renderProducts(document.getElementById('search-products').value);
+            });
+        });
+
+        document.getElementById('search-products').addEventListener('keyup', (e) => renderProducts(e.target.value));
+
+        function getCatEmoji(catName) {
+            const found = PRODUCT_CATEGORIES.find(c => c.name === catName);
+            return found ? found.emoji : '📦';
+        }
+
+        function populateCategorySelect() {
+            const select = document.getElementById('prod-cat');
+            select.innerHTML = '<option value="" disabled selected>Оберіть тип</option>';
+            PRODUCT_CATEGORIES.forEach(cat => {
+                select.innerHTML += `<option value="${cat.name}">${cat.emoji} ${cat.name}</option>`;
+            });
+        }
+        
+        function populateSizesDropdown(catName, selectElementId, prefillValue = '') {
+            const select = document.getElementById(selectElementId);
+            if(!select) return;
+            select.innerHTML = '';
+            let sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'ONE SIZE'];
+            
+            if (PRODUCT_GROUPS['Взуття'].includes(catName)) {
+                sizes = [];
+                for(let i=36; i<=45; i++) sizes.push(i.toString());
+            }
+
+            sizes.forEach(s => {
+                const selected = s === prefillValue ? 'selected' : '';
+                select.innerHTML += `<option value="${s}" ${selected}>${s}</option>`;
+            });
+            
+            if(prefillValue && !sizes.includes(prefillValue)) {
+                select.innerHTML += `<option value="${prefillValue}" selected>${prefillValue}</option>`;
+            }
+        }
+        
+        function getColorsDropdownOptions(prefillValue = '') {
+            let options = '';
+            let foundPrefill = false;
+            POPULAR_COLORS.forEach(c => {
+                const selected = c.name === prefillValue ? 'selected' : '';
+                if(selected) foundPrefill = true;
+                options += `<option value="${c.name}" ${selected}>${c.name}</option>`;
+            });
+            if (prefillValue && !foundPrefill) {
+                options += `<option value="${prefillValue}" selected>${prefillValue}</option>`;
+            }
+            return options;
+        }
+
+        function renderProducts(searchQuery = '') {
+            const list = document.getElementById('products-list');
+            list.innerHTML = '';
+            
+            let filtered = window.appState.products;
+            
+            if(currentStockView === 'transit') {
+                filtered = filtered.filter(p => p.stockStatus === 'transit');
+            } else {
+                filtered = filtered.filter(p => p.stockStatus !== 'transit');
+            }
+
+            if (currentCatFilter !== 'Всі') {
+                if (PRODUCT_GROUPS[currentCatFilter]) {
+                    filtered = filtered.filter(p => PRODUCT_GROUPS[currentCatFilter].includes(p.category));
+                } else {
+                    filtered = filtered.filter(p => p.category === currentCatFilter);
+                }
+            }
+
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                filtered = filtered.filter(p => (p.name && p.name.toLowerCase().includes(q)) || (p.sku && p.sku.toLowerCase().includes(q)));
+            }
+
+            if(filtered.length === 0) { list.innerHTML = '<div class="text-center col-span-full text-gray-400 py-10">Товарів не знайдено</div>'; return; }
+
+            filtered.forEach(p => {
+                const totalStock = p.variants ? p.variants.reduce((sum, v) => sum + parseInt(v.stock||0), 0) : 0;
+                const stockColor = totalStock > 0 ? 'text-green-600 bg-green-50 border-green-200' : 'text-red-600 bg-red-50 border-red-200';
+                const emoji = getCatEmoji(p.category);
+                
+                let imageHtml = `<div class="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center text-3xl shadow-inner shrink-0">${emoji}</div>`;
+                if(p.image) {
+                    imageHtml = `<img src="${p.image}" class="w-14 h-14 rounded-xl object-cover shadow-sm shrink-0 border border-gray-100">`;
+                }
+                
+                const el = document.createElement('div');
+                el.className = 'bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3 active:bg-gray-50 transition-colors cursor-pointer';
+                el.onclick = () => openEditProductModal(p);
+                el.innerHTML = `
+                    ${imageHtml}
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold text-gray-800 truncate">${p.name}</div>
+                        <div class="text-[10px] text-gray-400 font-medium">${p.sku || '-'} • ${p.category || '-'}</div>
+                        <div class="font-black text-primary mt-0.5">${p.price} ₴</div>
+                    </div>
+                    <div class="px-3 py-1.5 rounded-lg border flex flex-col items-center justify-center shrink-0 ${stockColor}">
+                        <span class="text-[10px] font-bold uppercase opacity-80">Залишок</span>
+                        <span class="text-lg font-black leading-none">${totalStock}</span>
+                    </div>
+                `;
+                list.appendChild(el);
+            });
+        }
+
+        window.openProductModal = function() {
+            document.getElementById('prod-id').value = '';
+            document.getElementById('prod-image-base64').value = '';
+            document.getElementById('prod-image-preview').classList.add('hidden');
+            document.getElementById('prod-image-icon').classList.remove('hidden');
+            document.getElementById('prod-image-text').classList.remove('hidden');
+            document.getElementById('modal-product-title').innerText = 'Новий товар';
+            
+            document.getElementById('prod-name').value = '';
+            document.getElementById('prod-sku').value = '';
+            document.getElementById('prod-cat').value = '';
+            document.getElementById('prod-status').value = 'in_stock';
+            document.getElementById('prod-price').value = '';
+            document.getElementById('prod-cost').value = '';
+            document.getElementById('pc-goods').value = '';
+            document.getElementById('pc-qty').value = '1';
+            document.getElementById('pc-delivery').value = '';
+            document.getElementById('pc-misc').value = '';
+            document.getElementById('variants-container').innerHTML = '';
+            addVariantRow();
+            openModal('modal-product');
+        }
+        
+        document.getElementById('prod-cat').addEventListener('change', (e) => {
+            const cat = e.target.value;
+            document.querySelectorAll('.var-size-select').forEach(select => {
+                populateSizesDropdown(cat, select.id, select.value);
+            });
+        });
+
+        window.openEditProductModal = function(p) {
+            document.getElementById('prod-id').value = p.id;
+            document.getElementById('modal-product-title').innerText = 'Редагувати товар';
+            document.getElementById('prod-name').value = p.name;
+            document.getElementById('prod-sku').value = p.sku || '';
+            
+            document.getElementById('prod-image-base64').value = p.image || '';
+            if(p.image) {
+                document.getElementById('prod-image-preview').src = p.image;
+                document.getElementById('prod-image-preview').classList.remove('hidden');
+                document.getElementById('prod-image-icon').classList.add('hidden');
+                document.getElementById('prod-image-text').classList.add('hidden');
+            } else {
+                document.getElementById('prod-image-preview').classList.add('hidden');
+                document.getElementById('prod-image-icon').classList.remove('hidden');
+                document.getElementById('prod-image-text').classList.remove('hidden');
+            }
+            
+            const catSelect = document.getElementById('prod-cat');
+            if (p.category && !Array.from(catSelect.options).some(opt => opt.value === p.category)) catSelect.add(new Option(p.category, p.category));
+            catSelect.value = p.category || '';
+            document.getElementById('prod-status').value = p.stockStatus || 'in_stock';
+            document.getElementById('prod-price').value = p.price;
+            document.getElementById('prod-cost').value = p.costPrice || '';
+            
+            if (p.costsBreakdown) {
+                document.getElementById('pc-goods').value = p.costsBreakdown.goods || '';
+                document.getElementById('pc-qty').value = p.costsBreakdown.qty || '1';
+                document.getElementById('pc-delivery').value = p.costsBreakdown.delivery || '';
+                document.getElementById('pc-misc').value = p.costsBreakdown.misc || '';
+            } else {
+                document.getElementById('pc-goods').value = '';
+                document.getElementById('pc-qty').value = '1';
+                document.getElementById('pc-delivery').value = '';
+                document.getElementById('pc-misc').value = '';
+            }
+
+            const vContainer = document.getElementById('variants-container');
+            vContainer.innerHTML = '';
+            if (p.variants && p.variants.length > 0) {
+                p.variants.forEach(v => addVariantRow(v.size, v.color, v.stock));
+            } else {
+                addVariantRow();
+            }
+            openModal('modal-product');
+        }
+
+        window.addVariantRow = function(size = '', color = '', stock = '1') {
+            const div = document.createElement('div');
+            div.className = 'flex gap-2 items-center';
+            const rowId = 'var_' + Date.now() + Math.random().toString(36).substr(2, 5);
+            
+            let qtyOptions = '';
+            for(let i=0; i<=10; i++) {
+                const sel = i.toString() === stock.toString() ? 'selected' : '';
+                qtyOptions += `<option value="${i}" ${sel}>${i} шт.</option>`;
+            }
+            if(parseInt(stock)>10) { qtyOptions += `<option value="${stock}" selected>${stock} шт.</option>`; }
+            
+            div.innerHTML = `
+                <select id="size_${rowId}" class="var-size-select flex-1 p-2 border rounded-lg text-sm bg-white outline-none focus:border-primary"></select>
+                <select class="var-color flex-1 p-2 border rounded-lg text-sm bg-white outline-none focus:border-primary">
+                    <option value="" disabled selected>Колір</option>
+                    ${getColorsDropdownOptions(color)}
+                </select>
+                <select class="var-stock w-20 p-2 border rounded-lg text-sm bg-white font-bold outline-none text-center focus:border-primary">
+                    ${qtyOptions}
+                </select>
+                <button onclick="this.parentElement.remove()" class="text-red-400 p-2 hover:bg-red-50 rounded-lg"><i class="fa-solid fa-trash"></i></button>
+            `;
+            document.getElementById('variants-container').appendChild(div);
+            
+            const currentCat = document.getElementById('prod-cat').value;
+            populateSizesDropdown(currentCat, `size_${rowId}`, size);
+        }
+
+        window.calcProductCost = function() {
+            const goods = parseFloat(document.getElementById('pc-goods').value) || 0;
+            const qty = parseFloat(document.getElementById('pc-qty').value) || 1;
+            const delivery = parseFloat(document.getElementById('pc-delivery').value) || 0;
+            const misc = parseFloat(document.getElementById('pc-misc').value) || 0;
+            
+            const total = goods + delivery + misc;
+            const unitCost = qty > 0 ? (total / qty) : 0;
+            document.getElementById('prod-cost').value = unitCost.toFixed(2);
+        }
+
+        window.saveProduct = async function() {
+            const name = document.getElementById('prod-name').value.trim();
+            const cat = document.getElementById('prod-cat').value;
+            const btn = document.querySelector('#modal-product button[onclick="saveProduct()"]');
+            
+            if(!name) { showToast('Введіть назву товару!', 'error'); return; }
+            if(!cat) { showToast('Оберіть тип товару!', 'error'); return; }
+
+            const variants = [];
+            document.getElementById('variants-container').querySelectorAll('div.flex').forEach(row => {
+                const size = row.querySelector('.var-size-select').value;
+                const color = row.querySelector('.var-color').value;
+                const stock = parseInt(row.querySelector('.var-stock').value) || 0;
+                if(size && color) variants.push({ size, color, stock });
+            });
+            
+            if(variants.length === 0) { showToast('Заповніть хоча б одну варіацію!', 'error'); return; }
+
+            const prodData = {
+                name: name,
+                sku: document.getElementById('prod-sku').value.trim(),
+                category: cat,
+                stockStatus: document.getElementById('prod-status').value,
+                price: parseFloat(document.getElementById('prod-price').value || 0),
+                costPrice: parseFloat(document.getElementById('prod-cost').value || 0),
+                costsBreakdown: {
+                    goods: parseFloat(document.getElementById('pc-goods').value || 0),
+                    qty: parseFloat(document.getElementById('pc-qty').value || 1),
+                    delivery: parseFloat(document.getElementById('pc-delivery').value || 0),
+                    misc: parseFloat(document.getElementById('pc-misc').value || 0)
+                },
+                variants: variants,
+                image: document.getElementById('prod-image-base64').value || null
+            };
+
+            const originalBtnHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Збереження...';
+            btn.disabled = true;
+
+            try {
+                const id = document.getElementById('prod-id').value || 'prod_' + Date.now();
+                if (isConnected) {
+                    await setDoc(doc(db, getCollectionPath('products'), id), { id, ...prodData });
+                } else {
+                    const existing = appState.products.findIndex(p => p.id === id);
+                    if(existing > -1) appState.products[existing] = {id, ...prodData}; else appState.products.push({id, ...prodData});
+                    saveToLocal();
+                    renderProducts();
+                }
+                closeModal('modal-product');
+                showToast('Товар збережено');
+            } catch (e) {
+                showToast('Помилка збереження', 'error');
+            } finally {
+                btn.innerHTML = originalBtnHtml;
+                btn.disabled = false;
+            }
+        }
+
+        window.openSupplyModal = function(id = null) {
+            if (id) {
+                const s = appState.supplies.find(x => x.id === id);
+                document.getElementById('sup-id').value = s.id;
+                document.getElementById('sup-track').value = s.trackingNumber || '';
+                document.getElementById('sup-desc').value = s.description || '';
+                document.getElementById('sup-status').value = s.status || 'transit';
+                document.getElementById('modal-supply-title').innerText = 'Редагувати посилку';
+            } else {
+                document.getElementById('sup-id').value = '';
+                document.getElementById('sup-track').value = '';
+                document.getElementById('sup-desc').value = '';
+                document.getElementById('sup-status').value = 'transit';
+                document.getElementById('modal-supply-title').innerText = 'Нова вхідна посилка';
+            }
+            openModal('modal-supply');
+        }
+
+        window.saveSupply = async function() {
+            const track = document.getElementById('sup-track').value.trim();
+            const desc = document.getElementById('sup-desc').value.trim();
+            
+            if(!track && !desc) { showToast('Введіть трек-номер або опис!', 'error'); return; }
+
+            const btn = document.querySelector('#modal-supply button[onclick="saveSupply()"]');
+            const originalBtnHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Збереження...';
+            btn.disabled = true;
+
+            const id = document.getElementById('sup-id').value || 'track_' + Date.now();
+            const data = {
+                trackingNumber: track,
+                description: desc,
+                status: document.getElementById('sup-status').value,
+                createdAt: new Date().toISOString()
+            };
+
+            try {
+                if(isConnected) {
+                    await setDoc(doc(db, getCollectionPath('supplies'), id), data);
+                } else {
+                    const existing = appState.supplies.findIndex(x => x.id === id);
+                    if(existing > -1) appState.supplies[existing] = {id, ...data}; else appState.supplies.push({id, ...data});
+                    saveToLocal();
+                    renderSupplies();
+                }
+                closeModal('modal-supply');
+                showToast('Посилку збережено');
+            } catch(e) {
+                showToast('Помилка збереження', 'error');
+            } finally {
+                btn.innerHTML = originalBtnHtml;
+                btn.disabled = false;
+            }
+        }
+
+        window.trackMeest = function(trackNumber) {
+            if(!trackNumber) return;
+            window.open(`https://t.meest-group.com/tracking?number=${trackNumber}`, '_blank');
+        }
+
+        window.renderSupplies = function() {
+            const list = document.getElementById('supplies-list');
+            list.innerHTML = '';
+            
+            const sorted = appState.supplies.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+            if(sorted.length === 0) { list.innerHTML = '<div class="text-center text-gray-400 py-10">Немає збережених посилок</div>'; return; }
+
+            sorted.forEach(s => {
+                const statusBadge = s.status === 'received' 
+                    ? '<span class="px-2 py-1 rounded-lg text-xs font-bold uppercase bg-green-100 text-green-700 shadow-sm"><i class="fa-solid fa-check mr-1"></i>Отримано</span>'
+                    : '<span class="px-2 py-1 rounded-lg text-xs font-bold uppercase bg-indigo-100 text-indigo-700 shadow-sm"><i class="fa-solid fa-truck-fast mr-1"></i>В дорозі</span>';
+                
+                const dateStr = new Date(s.createdAt).toLocaleDateString('uk-UA', {day:'2-digit', month:'2-digit', year:'numeric'});
+                const el = document.createElement('div');
+                el.className = 'bg-white p-4 rounded-xl shadow-sm border border-gray-100 active:bg-gray-50 transition-colors cursor-pointer relative overflow-hidden';
+                el.onclick = () => openSupplyModal(s.id);
+                const borderColor = s.status === 'received' ? 'bg-green-500' : 'bg-indigo-500';
+
+                el.innerHTML = `
+                    <div class="absolute left-0 top-0 bottom-0 w-1.5 ${borderColor}"></div>
+                    <div class="flex justify-between items-start mb-3 pl-2">
+                        <div class="pr-2">
+                            <div class="font-black text-gray-800 text-lg tracking-tight">${s.trackingNumber || 'Без трек-номеру'}</div>
+                            <div class="text-[10px] text-gray-400 mt-1"><i class="fa-regular fa-calendar mr-1"></i> Додано: ${dateStr}</div>
+                        </div>
+                        ${statusBadge}
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm text-gray-700 ml-2 whitespace-pre-wrap leading-snug font-medium mb-3">
+                        ${s.description ? s.description : '<span class="text-gray-400 italic">Опис порожній...</span>'}
+                    </div>
+                    ${s.trackingNumber ? `
+                    <div class="ml-2 mt-2">
+                        <button onclick="trackMeest('${s.trackingNumber}'); event.stopPropagation();" class="text-xs bg-[#00AEEF]/10 text-[#00AEEF] px-4 py-2 rounded-xl font-bold hover:bg-[#00AEEF]/20 transition-colors flex items-center shadow-sm">
+                            <i class="fa-solid fa-earth-europe mr-2"></i> Відстежити місцезнаходження
+                        </button>
+                    </div>
+                    ` : ''}
+                `;
+                list.appendChild(el);
+            });
+        }
+
+        window.setShippingMethod = function(method) {
+            document.getElementById('shipping-method').value = method;
+            const btnNp = document.getElementById('btn-np');
+            const btnUkr = document.getElementById('btn-ukr');
+            const imgNp = document.getElementById('np-logo-img');
+            const imgUkr = document.getElementById('ukr-logo-img');
+
+            if(method === 'np') {
+                btnNp.className = 'flex-1 py-2 rounded-lg text-sm font-bold bg-white shadow-sm transition-all flex items-center justify-center text-gray-800';
+                btnUkr.className = 'flex-1 py-2 rounded-lg text-sm font-bold text-gray-500 transition-all flex items-center justify-center';
+                if(imgNp) imgNp.classList.remove('grayscale', 'opacity-50');
+                if(imgUkr) imgUkr.classList.add('grayscale', 'opacity-50');
+            } else {
+                btnUkr.className = 'flex-1 py-2 rounded-lg text-sm font-bold bg-white shadow-sm transition-all flex items-center justify-center text-gray-800';
+                btnNp.className = 'flex-1 py-2 rounded-lg text-sm font-bold text-gray-500 transition-all flex items-center justify-center';
+                if(imgUkr) imgUkr.classList.remove('grayscale', 'opacity-50');
+                if(imgNp) imgNp.classList.add('grayscale', 'opacity-50');
+            }
+            validateOrderForm();
+        }
+
+        window.validateOrderForm = function() {
+            const phone = document.getElementById('order-phone').value.trim();
+            const name = document.getElementById('order-name').value.trim();
+            const city = document.getElementById('order-city').value.trim();
+            const dep = document.getElementById('order-dep').value.trim();
+            const cartHasItems = appState.cart.length > 0;
+            const btn = document.getElementById('btn-create-order');
+            if(phone && name && city && dep && cartHasItems) {
+                btn.disabled = false;
+            } else {
+                btn.disabled = true;
+            }
+        }
+
+        window.renderSelectProducts = function() {
+            const q = document.getElementById('search-select-product').value.toLowerCase();
+            const list = document.getElementById('select-products-list');
+            list.innerHTML = '';
+            
+            let available = window.appState.products.filter(p => p.stockStatus !== 'transit');
+            if(q) available = available.filter(p => (p.name && p.name.toLowerCase().includes(q)) || (p.sku && p.sku.toLowerCase().includes(q)));
+
+            if(available.length === 0) { list.innerHTML = '<div class="text-center text-gray-400 mt-4 text-sm">Нічого не знайдено</div>'; return; }
+
+            available.forEach(p => {
+                const el = document.createElement('div');
+                el.className = 'bg-white p-3 rounded-xl border border-gray-100 shadow-sm mb-2';
+                
+                let imageHtml = `<div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-xl shrink-0">${getCatEmoji(p.category)}</div>`;
+                if(p.image) {
+                    imageHtml = `<img src="${p.image}" class="w-10 h-10 rounded-lg object-cover shrink-0 border border-gray-100">`;
+                }
+
+                let variantsHtml = '<div class="space-y-1 mt-2 border-t pt-2">';
+                if(p.variants && p.variants.length > 0) {
+                    p.variants.forEach((v, idx) => {
+                        const disabled = parseInt(v.stock||0) === 0 ? 'opacity-50 pointer-events-none' : '';
+                        const colorHex = POPULAR_COLORS.find(c => c.name === v.color)?.hex || '#ccc';
+                        
+                        variantsHtml += `
+                            <div class="flex justify-between items-center bg-gray-50 p-1.5 rounded-lg ${disabled}">
+                                <div class="flex items-center text-sm font-medium gap-2">
+                                    <span class="w-3 h-3 rounded-full border border-gray-300" style="background-color: ${colorHex}"></span>
+                                    <span>${v.size} / ${v.color}</span>
+                                    <span class="text-[10px] bg-gray-200 text-gray-600 px-1.5 rounded">${v.stock} шт</span>
+                                </div>
+                                <button onclick="addToCart('${p.id}', ${idx})" class="bg-primary text-white w-7 h-7 rounded-md shadow flex items-center justify-center"><i class="fa-solid fa-plus text-xs"></i></button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    variantsHtml += '<div class="text-xs text-red-500">Немає варіацій</div>';
+                }
+                variantsHtml += '</div>';
+
+                el.innerHTML = `
+                    <div class="flex gap-3 items-center">
+                        ${imageHtml}
+                        <div>
+                            <div class="font-bold text-sm text-gray-800 leading-tight">${p.name}</div>
+                            <div class="text-xs font-black text-primary">${p.price} ₴</div>
+                        </div>
+                    </div>
+                    ${variantsHtml}
+                `;
+                list.appendChild(el);
+            });
+        }
+
+        window.addToCart = function(prodId, varIdx) {
+            const prod = window.appState.products.find(p => p.id === prodId);
+            const variant = prod.variants[varIdx];
+            
+            const inCart = appState.cart.filter(c => c.prodId === prodId && c.size === variant.size && c.color === variant.color).length;
+            if(inCart >= parseInt(variant.stock)) {
+                showToast('Недостатньо на складі!', 'error');
+                return;
+            }
+
+            window.appState.cart.push({
+                prodId: prod.id,
+                name: prod.name,
+                category: prod.category,
+                image: prod.image,
+                price: prod.price,
+                costPrice: prod.costPrice || 0,
+                size: variant.size,
+                color: variant.color
+            });
+            
+            showToast('Додано в кошик');
+            renderCart();
+            validateOrderForm();
+        }
+
+        window.removeFromCart = function(idx) {
+            window.appState.cart.splice(idx, 1);
+            renderCart();
+            validateOrderForm();
+        }
+
+        function renderCart() {
+            const list = document.getElementById('cart-items');
+            const totalEl = document.getElementById('cart-total');
+            const totalCont = document.getElementById('cart-total-container');
+            const emptyMsg = document.getElementById('empty-cart-msg');
+            
+            list.innerHTML = '';
+            if(window.appState.cart.length === 0) {
+                emptyMsg.style.display = 'block';
+                totalCont.classList.add('hidden');
+                return;
+            }
+            
+            emptyMsg.style.display = 'none';
+            totalCont.classList.remove('hidden');
+            
+            let total = 0;
+            window.appState.cart.forEach((item, idx) => {
+                total += parseFloat(item.price);
+                const el = document.createElement('div');
+                el.className = 'flex justify-between items-center bg-white p-2 rounded-xl border border-gray-100 shadow-sm';
+                
+                let imageHtml = `<div class="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-sm shrink-0 mr-2">${getCatEmoji(item.category)}</div>`;
+                if(item.image) imageHtml = `<img src="${item.image}" class="w-8 h-8 rounded object-cover shrink-0 mr-2 border border-gray-100">`;
+
+                el.innerHTML = `
+                    <div class="flex items-center min-w-0">
+                        ${imageHtml}
+                        <div class="min-w-0">
+                            <div class="font-bold text-xs truncate text-gray-800">${item.name}</div>
+                            <div class="text-[10px] text-gray-500">${item.size} • ${item.color}</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="font-black text-sm text-gray-800">${item.price} ₴</div>
+                        <button onclick="removeFromCart(${idx})" class="text-red-400 p-1 hover:bg-red-50 rounded"><i class="fa-solid fa-times"></i></button>
+                    </div>
+                `;
+                list.appendChild(el);
+            });
+            totalEl.innerText = total + ' ₴';
+        }
+
+        window.findClient = function() {
+            const phone = document.getElementById('order-phone').value.trim();
+            if(!phone) return;
+            const client = window.appState.clients.find(c => c.phone === phone);
+            if(client) {
+                document.getElementById('order-name').value = client.name || '';
+                document.getElementById('order-city').value = client.city || '';
+                document.getElementById('order-dep').value = client.department || '';
+                document.getElementById('order-source').value = client.source || '';
+                showToast('Клієнта знайдено');
+            } else {
+                showToast('Новий клієнт', 'info');
+            }
+            validateOrderForm();
+        }
+
+        window.createOrder = async function() {
+            const phone = document.getElementById('order-phone').value.trim();
+            if(!phone || window.appState.cart.length === 0) return;
+            
+            const btn = document.getElementById('btn-create-order');
+            const originalBtnHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Створення...';
+            btn.disabled = true;
+
+            const name = document.getElementById('order-name').value.trim();
+            const city = document.getElementById('order-city').value.trim();
+            const dep = document.getElementById('order-dep').value.trim();
+            const source = document.getElementById('order-source').value.trim();
+            const method = document.getElementById('shipping-method').value;
+            const notes = document.getElementById('order-notes').value.trim();
+            const total = window.appState.cart.reduce((s, i) => s + parseFloat(i.price), 0);
+            
+            const productsToUpdate = {};
+            window.appState.cart.forEach(item => {
+                if(!productsToUpdate[item.prodId]) {
+                    productsToUpdate[item.prodId] = JSON.parse(JSON.stringify(window.appState.products.find(p => p.id === item.prodId)));
+                }
+                const p = productsToUpdate[item.prodId];
+                const v = p.variants.find(v => v.size === item.size && v.color === item.color);
+                if(v && parseInt(v.stock) > 0) v.stock = parseInt(v.stock) - 1;
+            });
+
+            const orderId = 'ord_' + Date.now();
+            const nowIso = new Date().toISOString();
+            
+            const orderData = {
+                id: orderId,
+                createdAt: nowIso,
+                client: { phone, name, city, department: dep, source },
+                shipping: { method, ttn: '', statusNP: '' },
+                items: [...window.appState.cart],
+                totalAmount: total,
+                status: 'new',
+                notes: notes
+            };
+
+            const clientData = {
+                phone: phone,
+                name: name,
+                city: city,
+                department: dep,
+                source: source,
+                lastOrder: nowIso
+            };
+
+            try {
+                if (isConnected) {
+                    await setDoc(doc(db, getCollectionPath('orders'), orderId), orderData);
+                    await setDoc(doc(db, getCollectionPath('clients'), phone), clientData, {merge: true});
+                    for(const [pId, pData] of Object.entries(productsToUpdate)) {
+                        await setDoc(doc(db, getCollectionPath('products'), pId), pData);
+                    }
+                } else {
+                    appState.orders.push(orderData);
+                    const cIdx = appState.clients.findIndex(c => c.phone === phone);
+                    if(cIdx > -1) Object.assign(appState.clients[cIdx], clientData); else appState.clients.push(clientData);
+                    for(const [pId, pData] of Object.entries(productsToUpdate)) {
+                        const idx = appState.products.findIndex(p => p.id === pId);
+                        if(idx > -1) appState.products[idx] = pData;
+                    }
+                    saveToLocal();
+                }
+                
+                window.appState.cart = [];
+                renderCart();
+                document.getElementById('order-phone').value = '';
+                document.getElementById('order-name').value = '';
+                document.getElementById('order-city').value = '';
+                document.getElementById('order-dep').value = '';
+                document.getElementById('order-source').value = '';
+                document.getElementById('order-notes').value = '';
+                
+                closeModal('modal-new-order');
+                showToast('Замовлення створено! 🎉');
+                switchTab('tab-orders'); 
+            } catch (e) {
+                showToast('Помилка', 'error');
+            } finally {
+                btn.innerHTML = originalBtnHtml;
+                btn.disabled = false;
+            }
+        }
+
+        let currentOrderStatusFilter = 'all';
+
+        document.querySelectorAll('.status-filter').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.status-filter').forEach(b => {
+                    b.className = 'status-filter px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-full text-xs font-semibold whitespace-nowrap';
+                });
+                e.target.className = 'status-filter active px-4 py-1.5 bg-primary text-white rounded-full text-xs font-semibold whitespace-nowrap shadow-sm';
+                currentOrderStatusFilter = e.target.dataset.status;
+                renderOrders();
+            });
+        });
+
+        const STATUS_UI = {
+            'new': { text: 'Нове', color: 'bg-blue-100 text-blue-800' },
+            'packing': { text: 'Пакується', color: 'bg-yellow-100 text-yellow-800' },
+            'shipped': { text: 'Відправлено', color: 'bg-indigo-100 text-indigo-800' },
+            'completed': { text: 'Виконано', color: 'bg-green-100 text-green-800' },
+            'cancelled': { text: 'Відмова', color: 'bg-red-100 text-red-800' }
+        };
+
+        function renderOrders() {
+            const list = document.getElementById('orders-list');
+            list.innerHTML = '';
+            
+            let filtered = window.appState.orders.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+            if(currentOrderStatusFilter !== 'all') {
+                filtered = filtered.filter(o => o.status === currentOrderStatusFilter);
+            }
+
+            if(filtered.length === 0) { list.innerHTML = '<div class="text-center text-gray-400 py-10">Немає замовлень</div>'; return; }
+
+            filtered.forEach(o => {
+                const ui = STATUS_UI[o.status] || STATUS_UI['new'];
+                const dateStr = new Date(o.createdAt).toLocaleDateString('uk-UA', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
+                
+                let shippingIcon = '';
+                if(o.shipping?.method === 'ukr') {
+                    shippingIcon = '<img src="data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2220%22%20fill%3D%22%23FFCE00%22%2F%3E%3Cpath%20d%3D%22M20%2050%20C%2030%2010%2C%2070%2010%2C%2080%2050%20C%2070%2090%2C%2030%2090%2C%2020%2050%20Z%22%20fill%3D%22%230055A5%22%2F%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2215%22%20fill%3D%22%23FFCE00%22%2F%3E%3C%2Fsvg%3E" class="h-3 mr-1 object-contain">';
+                } else {
+                    shippingIcon = '<img src="data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2220%22%20fill%3D%22%23ED1C24%22%2F%3E%3Cpath%20d%3D%22M25%2025%20h15%20v18%20h20%20v-18%20h15%20v50%20h-15%20v-18%20h-20%20v18%20h-15%20z%22%20fill%3D%22%23FFFFFF%22%2F%3E%3C%2Fsvg%3E" class="h-3 mr-1 object-contain">';
+                }
+
+                const el = document.createElement('div');
+                el.className = 'bg-white p-3 rounded-2xl shadow-sm border border-gray-100 cursor-pointer active:bg-gray-50 transition-colors';
+                el.onclick = () => openOrderDetails(o);
+                el.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="text-[10px] text-gray-400"><i class="fa-regular fa-clock mr-1"></i>${dateStr}</div>
+                        <span class="px-2 py-1 rounded border text-[10px] font-bold uppercase ${ui.color} border-${ui.color.split(' ')[0].split('-')[1]}-200">${ui.text}</span>
+                    </div>
+                    <div class="font-bold text-gray-800 text-sm mb-1">${o.client.name} • ${o.client.phone}</div>
+                    <div class="flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
+                        <div class="flex text-[10px] font-medium text-gray-500 items-center">
+                            ${shippingIcon} ${o.items.length} товар(ів)
+                        </div>
+                        <div class="font-black text-primary">${o.totalAmount} ₴</div>
+                    </div>
+                `;
+                list.appendChild(el);
+            });
+        }
+
+        window.openOrderDetails = async function(o) {
+            document.getElementById('od-id').value = o.id;
+            const ui = STATUS_UI[o.status] || STATUS_UI['new'];
+            document.getElementById('od-badge').className = `px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${ui.color}`;
+            document.getElementById('od-badge').innerText = ui.text;
+            
+            let sourceHtml = o.client.source ? `<span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs ml-2">${o.client.source}</span>` : '';
+            document.getElementById('od-client-name').innerHTML = o.client.name + sourceHtml;
+            document.getElementById('od-client-phone').innerText = o.client.phone;
+            
+            let methodStr = o.shipping?.method === 'ukr' ? 'Укрпошта' : 'Нова Пошта';
+            document.getElementById('od-client-city').innerText = `${methodStr}: ${o.client.city}`;
+            document.getElementById('od-client-dep').innerText = o.client.department;
+
+            document.getElementById('od-ttn').value = o.shipping?.ttn || '';
+            document.getElementById('od-np-status').innerHTML = o.shipping?.statusNP ? `<i class="fa-solid fa-info-circle mr-1"></i> ${o.shipping.statusNP}` : 'Немає даних';
+            
+            let datesHtml = `<div class="text-[10px] text-gray-400 mt-2">Створено: ${new Date(o.createdAt).toLocaleDateString('uk-UA')}</div>`;
+            if(o.shippedAt) {
+                datesHtml += `<div class="text-[10px] text-indigo-400">Відправлено: ${new Date(o.shippedAt).toLocaleDateString('uk-UA')}</div>`;
+            }
+            document.getElementById('od-client-dep').innerHTML += datesHtml;
+
+            const itemsList = document.getElementById('od-items');
+            itemsList.innerHTML = '';
+            o.items.forEach(item => {
+                let imageHtml = `<div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-xl shrink-0 mr-3">${getCatEmoji(item.category)}</div>`;
+                if(item.image) imageHtml = `<img src="${item.image}" class="w-10 h-10 rounded-lg object-cover shrink-0 mr-3 border border-gray-100">`;
+
+                itemsList.innerHTML += `
+                    <div class="flex items-center justify-between bg-white border border-gray-100 p-2 rounded-xl shadow-sm">
+                        <div class="flex items-center min-w-0">
+                            ${imageHtml}
+                            <div class="min-w-0">
+                                <div class="font-bold text-sm text-gray-800 truncate leading-tight">${item.name}</div>
+                                <div class="text-[10px] text-gray-500">${item.size} • ${item.color}</div>
+                            </div>
+                        </div>
+                        <div class="font-black text-sm pl-2 shrink-0">${item.price} ₴</div>
+                    </div>
+                `;
+            });
+            document.getElementById('od-total').innerText = o.totalAmount + ' ₴';
+
+            openModal('modal-order-details');
+            if(o.shipping?.ttn && (!o.shipping.method || o.shipping.method === 'np')) {
+                await checkNPStatus(o.shipping.ttn, o.id);
+            }
+        }
+
+        window.updateOrderStatus = async function(newStatus) {
+            const id = document.getElementById('od-id').value;
+            const order = window.appState.orders.find(o => o.id === id);
+            if(!order) return;
+            
+            const oldStatus = order.status;
+            let shippedAtUpdate = {};
+            if(newStatus === 'shipped' && !order.shippedAt) {
+                shippedAtUpdate = { shippedAt: new Date().toISOString() };
+            }
+
+            try {
+                if(isConnected) {
+                    await setDoc(doc(db, getCollectionPath('orders'), id), { status: newStatus, ...shippedAtUpdate }, {merge:true});
+                } else {
+                    order.status = newStatus;
+                    if(shippedAtUpdate.shippedAt) order.shippedAt = shippedAtUpdate.shippedAt;
+                    saveToLocal();
+                    renderOrders();
+                }
+                
+                if(newStatus === 'cancelled' && oldStatus !== 'cancelled') {
+                    for(const item of order.items) {
+                        if(isConnected) {
+                            const pDoc = await getDoc(doc(db, getCollectionPath('products'), item.prodId));
+                            if(pDoc.exists()) {
+                                const pData = pDoc.data();
+                                const v = pData.variants.find(v => v.size === item.size && v.color === item.color);
+                                if(v) v.stock = parseInt(v.stock) + 1;
+                                await setDoc(doc(db, getCollectionPath('products'), item.prodId), pData);
+                            }
+                        } else {
+                            const p = appState.products.find(p => p.id === item.prodId);
+                            if(p) {
+                                const v = p.variants.find(v => v.size === item.size && v.color === item.color);
+                                if(v) v.stock = parseInt(v.stock) + 1;
+                            }
+                        }
+                    }
+                    if(!isConnected) saveToLocal();
+                    showToast('Товари повернуто на склад', 'info');
+                }
+
+                closeModal('modal-order-details');
+                showToast('Статус оновлено');
+            } catch(e) {
+                showToast('Помилка', 'error');
+            }
+        }
+
+        window.saveTTN = async function() {
+            const id = document.getElementById('od-id').value;
+            const ttn = document.getElementById('od-ttn').value.trim();
+            if(!ttn) return;
+            
+            try {
+                if(isConnected) {
+                    await setDoc(doc(db, getCollectionPath('orders'), id), { 'shipping.ttn': ttn }, {merge:true});
+                } else {
+                    const order = appState.orders.find(o => o.id === id);
+                    if(order) {
+                        if(!order.shipping) order.shipping = {};
+                        order.shipping.ttn = ttn;
+                        saveToLocal();
+                    }
+                }
+                showToast('ТТН збережено');
+                await checkNPStatus(ttn, id);
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        async function checkNPStatus(ttn, orderId) {
+            const statusEl = document.getElementById('od-np-status');
+            const apiKey = npConfig.apiKey || localStorage.getItem('np_api_key');
+            
+            if(!apiKey) {
+                statusEl.innerHTML = '<span class="text-orange-600"><i class="fa-solid fa-key mr-1"></i> Додайте ключ АПІ в налаштуваннях</span>';
+                return;
+            }
+
+            statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Оновлення статусу...';
+            
+            const payload = {
+                apiKey: apiKey,
+                modelName: "TrackingDocument",
+                calledMethod: "getStatusDocuments",
+                methodProperties: { Documents: [{ DocumentNumber: ttn }] }
+            };
+
+            try {
+                const res = await fetch(npConfig.url, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                
+                if(data.success && data.data.length > 0) {
+                    const npData = data.data[0];
+                    const statusText = npData.Status;
+                    const statusCode = npData.StatusCode;
+                    
+                    statusEl.innerHTML = `<i class="fa-solid fa-truck mr-1"></i> <strong>${statusText}</strong>`;
+                    
+                    if(statusCode === "9" || statusCode === "10" || statusCode === "11") {
+                        statusEl.className = 'text-xs text-green-900 bg-green-50 p-2 rounded border border-green-200 flex items-center font-bold mt-2';
+                    } else if (statusCode === "102" || statusCode === "103" || statusCode === "108") {
+                         statusEl.className = 'text-xs text-red-900 bg-red-50 p-2 rounded border border-red-200 flex items-center font-bold mt-2';
+                    } else {
+                        statusEl.className = 'text-xs text-indigo-900 bg-indigo-50 p-2 rounded border border-indigo-100 flex items-center font-medium mt-2';
+                    }
+
+                    if(isConnected && orderId) {
+                        await setDoc(doc(db, getCollectionPath('orders'), orderId), { 'shipping.statusNP': statusText }, {merge:true});
+                    } else if (orderId) {
+                        const order = appState.orders.find(o => o.id === orderId);
+                        if(order) {
+                            order.shipping.statusNP = statusText;
+                            saveToLocal();
+                        }
+                    }
+                } else {
+                    statusEl.innerHTML = '<span class="text-red-500">ТТН не знайдено або помилка API</span>';
+                }
+            } catch(e) {
+                statusEl.innerHTML = `<span class="text-red-500">Помилка з'єднання з НП</span>`;
+            }
+        }
+        
+        async function checkAllParcelsStatus() {
+            const apiKey = npConfig.apiKey || localStorage.getItem('np_api_key');
+            if(!apiKey || !isConnected) return;
+            
+            const shippedOrders = appState.orders.filter(o => o.status === 'shipped' && o.shipping?.ttn && (!o.shipping.method || o.shipping.method === 'np'));
+            if(shippedOrders.length === 0) return;
+            
+            const docs = shippedOrders.map(o => ({ DocumentNumber: o.shipping.ttn }));
+            const payload = {
+                apiKey: apiKey,
+                modelName: "TrackingDocument",
+                calledMethod: "getStatusDocuments",
+                methodProperties: { Documents: docs }
+            };
+            
+            try {
+                const res = await fetch(npConfig.url, { method: 'POST', body: JSON.stringify(payload) });
+                const data = await res.json();
+                
+                if(data.success) {
+                    let alerts = [];
+                    for(const npItem of data.data) {
+                        const order = shippedOrders.find(o => o.shipping.ttn === npItem.Number);
+                        if(order && order.shipping.statusNP !== npItem.Status) {
+                            await setDoc(doc(db, getCollectionPath('orders'), order.id), { 'shipping.statusNP': npItem.Status }, {merge:true});
+                            
+                            if(["9", "10", "11"].includes(npItem.StatusCode)) alerts.push(`🟢 Отримано: ${order.client.name}`);
+                            if(["102", "103", "108"].includes(npItem.StatusCode)) alerts.push(`🔴 Відмова: ${order.client.name}`);
+                            
+                            if(["7", "8"].includes(npItem.StatusCode)) {
+                                if(order.shippedAt) {
+                                    const diffTime = Math.abs(new Date() - new Date(order.shippedAt));
+                                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                                    if(diffDays >= 3) {
+                                        alerts.push(`⏳ Лежить у відділенні: ${order.client.name}`);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if(alerts.length > 0) {
+                        showToast(alerts[0], alerts[0].includes('🔴') ? 'error' : 'success');
+                    }
+                }
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        window.renderAnalytics = function() {
+            const period = document.getElementById('analytics-period').value;
+            const now = new Date();
+            let startDate = new Date(0);
+
+            if(period === 'week') {
+                startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+            } else if (period === 'month') {
+                startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+            } else if (period === 'year') {
+                startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+            }
+
+            let rev = 0;
+            let profit = 0;
+            let success = 0;
+            let failed = 0;
+
+            appState.orders.forEach(o => {
+                const d = new Date(o.createdAt);
+                if(d >= startDate) {
+                    if (o.status === 'completed') {
+                        rev += parseFloat(o.totalAmount || 0);
+                        success++;
+                        let orderCost = 0;
+                        o.items.forEach(item => {
+                            orderCost += parseFloat(item.costPrice || 0);
+                        });
+                        profit += (parseFloat(o.totalAmount || 0) - orderCost);
+                    } else if (o.status === 'cancelled') {
+                        failed++;
+                    }
+                }
+            });
+
+            document.getElementById('stat-revenue').innerText = rev.toLocaleString('uk-UA') + ' ₴';
+            document.getElementById('stat-profit').innerText = profit.toLocaleString('uk-UA') + ' ₴';
+            document.getElementById('stat-success-orders').innerText = success;
+            document.getElementById('stat-failed-orders').innerText = failed;
+        }
+
+        window.openClientHistory = function() {
+            const list = document.getElementById('clients-history-list');
+            list.innerHTML = '';
+            
+            const history = [];
+            appState.orders.forEach(o => {
+                if (o.status === 'completed') {
+                    o.items.forEach(i => {
+                        history.push({
+                            date: new Date(o.createdAt),
+                            clientName: o.client.name,
+                            clientPhone: o.client.phone,
+                            itemName: i.name,
+                            itemPrice: i.price,
+                            itemImg: i.image,
+                            itemCat: i.category
+                        });
+                    });
+                }
+            });
+            
+            history.sort((a,b) => b.date - a.date);
+
+            if(history.length === 0) {
+                list.innerHTML = '<div class="text-center text-gray-400 py-10">Історія порожня</div>';
+            } else {
+                history.forEach(h => {
+                    const dateStr = h.date.toLocaleDateString('uk-UA', {day:'2-digit', month:'2-digit', year:'numeric'});
+                    let imageHtml = `<div class="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center text-xl shrink-0 mr-3">${getCatEmoji(h.itemCat)}</div>`;
+                    if(h.itemImg) imageHtml = `<img src="${h.itemImg}" class="w-10 h-10 rounded-lg object-cover shrink-0 mr-3 border border-gray-200">`;
+
+                    list.innerHTML += `
+                        <div class="bg-white p-3 rounded-xl border border-gray-200 shadow-sm mb-2 flex items-center">
+                            ${imageHtml}
+                            <div class="flex-1 min-w-0">
+                                <div class="font-bold text-sm text-gray-800 truncate">${h.clientName}</div>
+                                <div class="text-xs text-gray-500 truncate">${h.itemName}</div>
+                            </div>
+                            <div class="text-right shrink-0 pl-2">
+                                <div class="font-black text-sm text-green-600">${h.itemPrice} ₴</div>
+                                <div class="text-[10px] text-gray-400 font-medium">${dateStr}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            openModal('modal-clients');
+        }
+
+        populateCategorySelect();
+    </script>
+</body>
+</html>
